@@ -7,28 +7,31 @@
 _base_ = ['./_base_/default_runtime.py']
 
 ##-----------------------------------------------------------------
-model_name = 'sapiens_0.3b'; embed_dim=1024; num_layers=24
-# model_name = 'sapiens_0.6b'; embed_dim=1280; num_layers=32
+# model_name = 'sapiens_0.3b'; embed_dim=1024; num_layers=24
+model_name = 'sapiens_0.6b'; embed_dim=1280; num_layers=32
 # model_name = 'sapiens_1b'; embed_dim=1536; num_layers=40
 # model_name = 'sapiens_2b'; embed_dim=1920; num_layers=48
 
-pretrained_checkpoint='../../data/checkpoints/sapiens/sapiens_0.3b_coco_best_coco_AP_796.pth'
+pretrained_checkpoint='../../../data/checkpoints/sapiens/pose/sapiens_0.6b_coco_wholebody_best_coco_wholebody_AP_695.pth'
 
 ##-----------------------------------------------------------------
 # evaluate_every_n_epochs = 10 ## default
 evaluate_every_n_epochs = 1
 
 vis_every_iters=100
+vis_line_width=4
+vis_radius=4
+
 image_size = [768, 1024] ## width x height
 sigma = 6 ## sigma is 2 for 256
 scale = 4
 patch_size=16
-num_keypoints=17
-num_epochs=210
+num_keypoints=133
 
 bbox_file='data/coco/person_detection_results/COCO_val2017_detections_AP_H_70_person.json'
+
 # runtime
-train_cfg = dict(max_epochs=num_epochs, val_interval=evaluate_every_n_epochs)
+train_cfg = dict(max_epochs=210, val_interval=evaluate_every_n_epochs)
 
 # optimizer
 custom_imports = dict(
@@ -41,7 +44,7 @@ optim_wrapper = dict(
         type='AdamW', lr=5e-4, betas=(0.9, 0.999), weight_decay=0.1),
     paramwise_cfg=dict(
         num_layers=num_layers,
-        layer_decay_rate=0.85,
+        layer_decay_rate=0.75,
         custom_keys={
             'bias': dict(decay_multi=0.0),
             'pos_embed': dict(decay_mult=0.0),
@@ -53,7 +56,7 @@ optim_wrapper = dict(
     clip_grad=dict(max_norm=1., norm_type=2),
 )
 
-# default learning policy
+# learning policy
 param_scheduler = [
     dict(
         type='LinearLR', begin=0, end=500, start_factor=0.001,
@@ -61,7 +64,7 @@ param_scheduler = [
     dict(
         type='MultiStepLR',
         begin=0,
-        end=num_epochs,
+        end=210,
         milestones=[170, 200],
         gamma=0.1,
         by_epoch=True)
@@ -73,15 +76,14 @@ auto_scale_lr = dict(base_batch_size=512) ## default not enabled
 
 # hooks
 default_hooks = dict(
-    checkpoint=dict(save_best='coco/AP', rule='greater', max_keep_ckpts=-1),
-    visualization=dict(type='CustomPoseVisualizationHook', enable=True, interval=vis_every_iters, scale=scale),
+    checkpoint=dict(save_best='coco-wholebody/AP', rule='greater', max_keep_ckpts=-1),
+    visualization=dict(type='GeneralPoseVisualizationHook', enable=True, interval=vis_every_iters, scale=scale, line_width=vis_line_width, radius=vis_radius),
     logger=dict(type='LoggerHook', interval=10),
     )
 
 # codec settings
 codec = dict(
     type='UDPHeatmap', input_size=(image_size[0], image_size[1]), heatmap_size=(int(image_size[0]/scale), int(image_size[1]/scale)), sigma=sigma) ## sigma is 2 for 256
-
 
 # model settings
 model = dict(
@@ -93,7 +95,12 @@ model = dict(
         bgr_to_rgb=True),
     backbone=dict(
         type='mmpretrain.VisionTransformer',
-        arch='l',
+        arch=dict(
+            embed_dims=1280,   # 0.6b 기준
+            num_layers=32,    # 0.6b 기준
+            num_heads=16,     # 0.6b 기준
+            feedforward_channels=5120 # 1280 * 4
+        ),
         img_size=(image_size[1], image_size[0]),
         patch_size=patch_size,
         qkv_bias=True,
@@ -126,7 +133,7 @@ model = dict(
 train_pipeline = [
     dict(type='LoadImage'),
     dict(type='GetBBoxCenterScale'),
-    dict(type='RandomFlip', direction='horizontal'),
+    dict(type='RandomFlip', direction='horizontal'), ## default prob is 0.5
     dict(type='RandomHalfBody'),
     dict(type='RandomBBoxTransform'),
     dict(type='TopdownAffine', input_size=codec['input_size'], use_udp=True),
@@ -156,15 +163,6 @@ val_pipeline = [
     dict(type='PackPoseInputs')
 ]
 
-# datasets
-dataset_coco = dict(
-    type='CocoDataset',
-    data_root='data/coco',
-    data_mode='topdown',
-    ann_file='annotations/person_keypoints_train2017.json',
-    data_prefix=dict(img='train2017/'),
-)
-
 # data loaders
 train_dataloader = dict(
     batch_size=64,
@@ -172,13 +170,13 @@ train_dataloader = dict(
     persistent_workers=True,
     sampler=dict(type='DefaultSampler', shuffle=True),
     dataset=dict(
-        type='CombinedDataset',
-        metainfo=dict(from_file='configs/_base_/datasets/coco.py'),
-        datasets=[dataset_coco],
+        type='CocoWholeBodyDataset',
+        data_root='data/coco',
+        data_mode='topdown',
+        ann_file='annotations/coco_wholebody_train_v1.0.json',
+        data_prefix=dict(img='train2017/'),
         pipeline=train_pipeline,
-    ),
-    )
-
+    ))
 val_dataloader = dict(
     batch_size=32,
     num_workers=4,
@@ -186,13 +184,13 @@ val_dataloader = dict(
     drop_last=False,
     sampler=dict(type='DefaultSampler', shuffle=False, round_up=False),
     dataset=dict(
-        type='CocoDataset',
+        type='CocoWholeBodyDataset',
         data_root='data/coco',
         data_mode='topdown',
-        ann_file='annotations/person_keypoints_val2017.json',
-        bbox_file=bbox_file,
+        ann_file='annotations/coco_wholebody_val_v1.0.json',
         data_prefix=dict(img='val2017/'),
         test_mode=True,
+        bbox_file=bbox_file,
         pipeline=val_pipeline,
     ))
 
@@ -200,6 +198,6 @@ test_dataloader = val_dataloader
 
 # evaluators
 val_evaluator = dict(
-    type='CocoMetric',
-    ann_file='data/coco/annotations/person_keypoints_val2017.json')
+    type='CocoWholeBodyMetric',
+    ann_file='data/coco/annotations/coco_wholebody_val_v1.0.json')
 test_evaluator = val_evaluator

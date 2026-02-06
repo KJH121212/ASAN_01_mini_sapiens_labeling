@@ -20,7 +20,7 @@ from mmpose.apis import init_model as init_pose_estimator
 # ============================================================
 BASE_DIR = Path("/workspace/nas203/ds_RehabilitationMedicineData/IDs/tojihoo/ASAN_01_mini_sapiens_labeling")
 DATA_DIR = Path("/workspace/nas203/ds_RehabilitationMedicineData/IDs/tojihoo/data")
-CSV_PATH = Path("/workspace/nas203/ds_RehabilitationMedicineData/IDs/tojihoo/data/new_metadata.csv")
+CSV_PATH = Path("/workspace/nas203/ds_RehabilitationMedicineData/IDs/tojihoo/data/metadata.csv")
 
 
 sys.path.append(str(BASE_DIR))

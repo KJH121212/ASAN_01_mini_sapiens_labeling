@@ -7,13 +7,12 @@
 _base_ = ['./_base_/default_runtime.py']
 
 ##-----------------------------------------------------------------
-model_name = 'sapiens_0.3b'; embed_dim=1024; num_layers=24
-# model_name = 'sapiens_0.6b'; embed_dim=1280; num_layers=32
+# model_name = 'sapiens_0.3b'; embed_dim=1024; num_layers=24
+model_name = 'sapiens_0.6b'; embed_dim=1280; num_layers=32
 # model_name = 'sapiens_1b'; embed_dim=1536; num_layers=40
 # model_name = 'sapiens_2b'; embed_dim=1920; num_layers=48
 
-pretrained_checkpoint='../../data/checkpoints/sapiens/sapiens_0.3b_coco_best_coco_AP_796.pth'
-
+pretrained_checkpoint='../../data/checkpoints/sapiens/sapiens_0.6b_coco_best_coco_AP_812.pth'
 ##-----------------------------------------------------------------
 # evaluate_every_n_epochs = 10 ## default
 evaluate_every_n_epochs = 1

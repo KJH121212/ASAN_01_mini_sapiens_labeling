@@ -89,7 +89,7 @@ def extract_keypoints(frame_dir: str, json_dir: str,
                 pred = det.pred_instances.cpu().numpy()          # 예측 결과 numpy 변환
 
                 # 사람(label==0)만 추출 + confidence 0.2 이상 필터링
-                keep = (pred.labels == 0) & (pred.scores > 0.5)
+                keep = (pred.labels == 0) & (pred.scores > 0.7)
                 bbs = np.concatenate((pred.bboxes, pred.scores[:, None]), axis=1)[keep]
 
                 if len(bbs) == 0:

@@ -1,10 +1,10 @@
 #!/bin/bash
-#SBATCH -J tojihoo_sapiens
+#SBATCH -J tojihoo_sapiensv5.0
 #SBATCH -t 7-00:00:00
 #SBATCH -o /home/tojihoo/logs/%A.out
 #SBATCH --mail-type END,TIME_LIMIT_90,REQUEUE,INVALID_DEPEND
 #SBATCH --mail-user jihu6033@gmail.com
-#SBATCH -p TitanRTX
+#SBATCH -p RTX3090
 #SBATCH --gpus 1
 
 # ------------------------------------------------------------
@@ -16,7 +16,7 @@ export http_proxy=http://192.168.45.108:3128
 export https_proxy=http://192.168.45.108:3128
 
 DOCKER_IMAGE_NAME="tojihoo/sapiens:v1.0"
-DOCKER_CONTAINER_NAME="tojihoo_running_sapiens"
+DOCKER_CONTAINER_NAME="tojihoo_sapiens_v5.0"
 DOCKERFILE_PATH="/mnt/nas203/ds_RehabilitationMedicineData/IDs/tojihoo/ASAN_01_mini_sapiens_labeling/docker/Dockerfile"
 WORKSPACE_PATH="/mnt/nas203/ds_RehabilitationMedicineData/IDs/tojihoo/ASAN_01_mini_sapiens_labeling"
 RANDOM_PORT=$(( (RANDOM % 101) + 5000 ))  # 8000~8100 사이 포트
@@ -46,9 +46,9 @@ docker run -it --rm --device=nvidia.com/gpu=all --shm-size 1TB \
     -e https_proxy=${https_proxy} \
     ${DOCKER_IMAGE_NAME} \
     bash -c "
-        cd /workspace/nas203/ds_RehabilitationMedicineData/IDs/tojihoo/ASAN_01_mini_sapiens_labeling/runner && \
-        python3 sapiens_pipeline.py
+        cd /workspace/nas203/ds_RehabilitationMedicineData/IDs/tojihoo/ASAN_01_mini_sapiens_labeling/test_code && \
+        python3 final.py
     "
 
 
-echo "[✅ DONE] sapiens_pipeline.py finished."
+echo "[✅ DONE] final.py finished."
